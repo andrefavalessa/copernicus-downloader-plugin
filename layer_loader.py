@@ -61,7 +61,7 @@ class LayerLoader:
         if search_root is None:
             return self._classify_direct_path(path)
 
-        raster = self._find_best_raster(search_root)
+        raster = self._find_first_by_extension(search_root, self.RASTER_EXTENSIONS)
         if raster is not None:
             return raster, "raster"
 
@@ -100,12 +100,6 @@ class LayerLoader:
         with ZipFile(zip_path, "r") as zip_file:
             zip_file.extractall(extract_dir)
         return extract_dir
-
-    def _find_best_raster(self, root: Path) -> Optional[Path]:
-        candidates = self._list_files_by_extension(root, self.RASTER_EXTENSIONS)
-        if not candidates:
-            return None
-        return candidates[0]
 
     def _find_first_by_extension(self, root: Path, extensions: set[str]) -> Optional[Path]:
         candidates = self._list_files_by_extension(root, extensions)
