@@ -1,7 +1,6 @@
+# CopernicusDownloaderWindow: É a Classe específica definida dentro desse arquivo que descreve como a janela deve se comportar (seus botões, campos e lógica visual). é trazida/importada para o plugin.py
 from typing import Optional
-
 from pathlib import Path
-
 from qgis.PyQt.QtCore import QObject, Qt, QThread, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -13,34 +12,32 @@ from qgis.PyQt.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
-    QVBoxLayout,
-)
-from qgis.PyQt.uic import loadUi
+    QVBoxLayout,)
 
+from qgis.PyQt.uic import loadUi
 from .downloader import Downloader
 from .layer_loader import LayerLoader
 
 
-class DownloadWorker(QObject):
-    # O worker executa o download fora da thread da interface para nao travar o QGIS.
-    finished = pyqtSignal()
-    success = pyqtSignal(str)
-    error = pyqtSignal(str)
+class DownloadWorker(QObject): # O worker executa o download fora da thread da interface para nao travar o QGIS. Segundo Plano
+    finished = pyqtSignal() # Sinal para indicar que o processo terminou, seja com sucesso ou erro.
+    success = pyqtSignal(str) # Sinal para indicar que o download foi concluído com sucesso, passando o caminho do arquivo baixado.
+    error = pyqtSignal(str) # Sinal para indicar que ocorreu um erro durante o download, passando a mensagem de erro.
 
-    def __init__(self, product_name: str, destination_folder: str, netrc_path: str) -> None:
-        super().__init__()
+    def __init__(self, product_name, destination_folder, netrc_path): # parametros de entrada, nome, pasta destino e caminho do netrc
+        super().__init__()                                                                  # herda de QObject para usar sinais e slots do PyQt
         self.product_name = product_name
         self.destination_folder = destination_folder
         self.netrc_path = netrc_path
 
-    def run(self) -> None:
-        try:
+    def run(self) -> None:      #Execucao do downloas
+        try:        # downloader é um objeto da classe Downloader
             downloader = Downloader(
                 server_url_format="copernicus",
                 destination_folder=self.destination_folder,
                 netrc_path=self.netrc_path,
             )
-            path = downloader.download_file(self.product_name)
+            path = downloader.download_file(self.product_name)  #chama o metodo de download passando o nome do produto, e espera receber o caminho do arquivo baixado
             self.success.emit(str(path))
         except Exception as exc:  # pragma: no cover - ambiente QGIS
             self.error.emit(str(exc))
@@ -61,17 +58,17 @@ class RasterSelectionDialog(QDialog):
 
         self.raster_list = QListWidget(self)
         for raster_path in raster_paths:
-            item = QListWidgetItem(self._build_item_label(raster_path))
-            item.setData(Qt.UserRole, str(raster_path))
-            item.setToolTip(str(raster_path))
-            self.raster_list.addItem(item)
+            item = QListWidgetItem(self._build_item_label(raster_path)) # exobe apenas o nome do raster, sem o caminho completo
+            item.setData(Qt.UserRole, str(raster_path))         # guarda o caminho completo do raster para recuperar dps 
+            item.setToolTip(str(raster_path))                       # paga o bizu do caminho
+            self.raster_list.addItem(item)                  # adiciona o item na lista para exibir
 
         if self.raster_list.count() > 0:
             self.raster_list.setCurrentRow(0)
 
         layout.addWidget(self.raster_list)
 
-        button_box = QDialogButtonBox(
+        button_box = QDialogButtonBox(                  #botoes ok e cancel
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
             parent=self,
         )
@@ -79,15 +76,16 @@ class RasterSelectionDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
-    def selected_raster_path(self) -> Optional[Path]:
+    def selected_raster_path(self) -> Optional[Path]:   #retorna o caminho do raster selecionado, ou None se nenhum for selecionado
         current_item = self.raster_list.currentItem()
         if current_item is None:
             return None
         return Path(current_item.data(Qt.UserRole))
 
-    def _build_item_label(self, raster_path: Path) -> str:
+    def _build_item_label(self, raster_path: Path):      # exibe apenas os ultimos 4 niveis do caminho do raster para facilitar a leitura
         tail_parts = raster_path.parts[-4:]
         return "/".join(tail_parts)
+
 
 
 class CopernicusDownloaderWindow(QMainWindow):
