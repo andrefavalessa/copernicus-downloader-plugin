@@ -88,7 +88,7 @@ class RasterSelectionDialog(QDialog):
 
 
 
-class CopernicusDownloaderWindow(QMainWindow):
+class CopernicusDownloaderWindow(QMainWindow): # classe que representa a janela principal do plugin
     def __init__(self, iface, parent=None):
         super().__init__(parent)
         self.iface = iface
@@ -105,20 +105,17 @@ class CopernicusDownloaderWindow(QMainWindow):
         self._configure_defaults()
         self._connect_signals()
 
-    def _inject_extra_controls(self) -> None:
+    def _inject_extra_controls(self):   # acrescenta widgets que não vieram prontos no .ui >> Escolher pasta
         self.pushButtonEscolherPasta = QPushButton("Escolher pasta...")
         self.gridLayoutDownload.addWidget(self.pushButtonEscolherPasta, 1, 2)
 
-    def _configure_defaults(self) -> None:
+    def _configure_defaults(self):  # impressoes em tela predeterminadas no Qt Designer
         self.setWindowTitle("Downloader Copernicus")
-        self.lineEditNomeImagem.setPlaceholderText(
-            "Ex.: S2A_MSIL2A_20220503T130251_N0510_R095_T23KPS_20241129T025850"
-        )
+        self.lineEditNomeImagem.setPlaceholderText("Ex.: S2A_MSIL2A_20220503T130251_N0510_R095_T23KPS_20241129T025850")
         self.labelTitulo.setText("Downloader Copernicus para QGIS")
         self.labelDescricao.setText(
             "Informe o nome do produto Copernicus. O plugin baixa o ZIP, extrai o produto "
-            "e permite escolher qual raster carregar no projeto."
-        )
+            "e permite escolher qual raster carregar no projeto.")
         self.labelPastaTitulo.setText("Pasta de destino")
         self.labelPastaDestino.setText(self.destination_folder)
         self.labelNetrcTitulo.setText("Arquivo .netrc")
@@ -126,16 +123,16 @@ class CopernicusDownloaderWindow(QMainWindow):
         self.labelStatus.setText("Pronto para iniciar.")
         self.plainTextEditLog.clear()
 
-    def _connect_signals(self) -> None:
-        self.pushButtonDownload.clicked.connect(self.iniciar_download)
+    def _connect_signals(self): #conecta a acao (click) com a funcao iniciar_download
+        self.pushButtonDownload.clicked.connect(self.iniciar_download)  
         self.lineEditNomeImagem.returnPressed.connect(self.iniciar_download)
         self.pushButtonEscolherPasta.clicked.connect(self.escolher_pasta)
 
-    def reset_defaults(self) -> None:
+    def reset_defaults(self):   # limpa os campos e reseta as config iniciais    
         self.lineEditNomeImagem.clear()
         self._configure_defaults()
 
-    def escolher_pasta(self) -> None:
+    def escolher_pasta(self):
         pasta = QFileDialog.getExistingDirectory(
             self,
             "Escolha a pasta de destino",
@@ -146,22 +143,22 @@ class CopernicusDownloaderWindow(QMainWindow):
             self.labelPastaDestino.setText(pasta)
             self._add_log(f"Nova pasta de destino: {pasta}")
 
-    def iniciar_download(self) -> None:
-        nome_imagem = self.lineEditNomeImagem.text().strip()
+    def iniciar_download(self):
+        nome_imagem = self.lineEditNomeImagem.text().strip()    # text() pega o texto do campo lineEditNomeImagem e remove espaços
         if not nome_imagem:
             self._mostrar_erro("Informe o nome do produto Copernicus antes de iniciar o download.")
             return
 
-        self.pushButtonDownload.setEnabled(False)
+        self.pushButtonDownload.setEnabled(False)   #desativa o botao de download para evitar cliques repetidos
         self.labelStatus.setText("Baixando produto...")
         self.plainTextEditLog.clear()
-        self._add_log(f"Produto informado: {nome_imagem}")
+        self._add_log(f"Produto informado: {nome_imagem}") #info do produto
         self._add_log(f"Pasta de destino: {self.destination_folder}")
         self._add_log(f"Arquivo .netrc: {self.netrc_path}")
 
-        self.thread_download = QThread()
-        self.worker = DownloadWorker(nome_imagem, self.destination_folder, self.netrc_path)
-        self.worker.moveToThread(self.thread_download)
+        self.thread_download = QThread() #cria a thread secundaria
+        self.worker = DownloadWorker(nome_imagem, self.destination_folder, self.netrc_path) #objetto worker criada para executar o down.
+        self.worker.moveToThread(self.thread_download) # move p a thread
 
         # O worker faz o download na thread secundaria; os sinais voltam para a janela.
         self.thread_download.started.connect(self.worker.run)
